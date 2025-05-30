@@ -10,7 +10,9 @@
     "default_popup": "popup.html"
   },
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://api.openai.com/*",

@@ -2,19 +2,58 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://api.openai.com; script-src 'self'; style-src 'self';">
   <title>PageGPT Assistant</title>
-  <style>
-    body { font-family: sans-serif; margin: 10px; min-width: 200px; }
-    button { display: block; width: 100%; margin: 5px 0; padding: 8px; }
-    #output { margin-top: 10px; white-space: pre-wrap; font-size: 0.9em; }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <script src="lib/marked.min.js"></script>
+  <script src="lib/purify.min.js"></script>
 </head>
 <body>
-  <h3>PageGPT Assistant</h3>
-  <button id="btnSummary">📝 Саммари страницы</button>
-  <button id="btnOutline">📑 План текста</button>
-  <button id="btnHighlight">🔦 Highlight ключевых идей</button>
-  <div id="output"></div>
+  <div class="container">
+    <h3>PageGPT Assistant</h3>
+    <div class="button-container">
+      <button class="action-button" id="btnSummary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h10"/>
+        </svg>
+        <span>Саммари</span>
+      </button>
+      <button class="action-button" id="btnOutline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+        </svg>
+        <span>План</span>
+      </button>
+      <button class="action-button" id="btnHighlight">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+        </svg>
+        <span>Выделить</span>
+      </button>
+      <button class="action-button" id="btnClearHighlight" title="Очистить выделение">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div id="status" class="status" style="display: none;">
+      <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle class="spinner-circle" cx="12" cy="12" r="10"/>
+      </svg>
+      <span id="statusText"></span>
+    </div>
+    <div class="output-container">
+      <div class="output-header">
+        <button class="copy-button" id="btnCopy" title="Копировать">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+          </svg>
+          <span>Копировать</span>
+        </button>
+      </div>
+      <div id="output">Выберите действие для анализа страницы</div>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

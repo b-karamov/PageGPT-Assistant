@@ -1,0 +1,228 @@
+:root {
+  --primary-bg: rgba(255, 255, 255, 0.95);
+  --secondary-bg: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-color: #1a1a1a;
+  --accent-color: #0066CC;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --status-color: #666;
+  --error-color: #ff3b30;
+  --success-color: #34c759;
+}
+
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  margin: 0;
+  min-width: 600px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: var(--text-color);
+  padding: 12px;
+}
+
+.container {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: var(--primary-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+h3 {
+  margin: 0 0 16px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: -0.022em;
+}
+
+.button-container {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr 1fr auto;
+}
+
+.action-button { 
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.action-button[id="btnClearHighlight"] {
+  padding: 8px;
+  aspect-ratio: 1;
+}
+
+.action-button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.action-button:hover {
+  background: var(--primary-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 4px var(--shadow-color);
+}
+
+.action-button:active {
+  transform: translateY(0);
+}
+
+.status {
+  font-size: 13px;
+  color: var(--status-color);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status.error {
+  color: var(--error-color);
+}
+
+.status.success {
+  color: var(--success-color);
+}
+
+.output-container {
+  position: relative;
+  margin-top: 12px;
+  background: var(--secondary-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.output-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.copy-button {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  color: var(--accent-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  font-size: 13px;
+}
+
+.copy-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.copy-button:hover {
+  opacity: 1;
+}
+
+#output {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Markdown стили */
+#output h1, #output h2, #output h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+
+#output h2 {
+  font-size: 15px;
+}
+
+#output h3 {
+  font-size: 14px;
+}
+
+#output ul, #output ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+#output li {
+  margin: 4px 0;
+}
+
+#output p {
+  margin: 8px 0;
+}
+
+#output code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+#output blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent-color);
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+/* Scrollbar стили */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-circle {
+  stroke-linecap: round;
+  stroke-dasharray: 50;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+} 
