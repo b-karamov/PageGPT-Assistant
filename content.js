@@ -47,11 +47,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       style.id = 'gpt-highlight-style';
       style.textContent = `
         .gpt-highlight-wrapper {
-          background: rgba(0, 0, 0, 0.9);
+          background: rgba(0, 0, 0, 0.95);
           display: inline;
         }
         .gpt-highlight-content {
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.70);
           border-radius: 3px;
           padding: 2px 4px;
           margin: 0 -2px;
@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Создаем регулярное выражение для всех фраз
     const phrasePatterns = phrases
       .filter(phrase => phrase && phrase.trim())
-      .map(phrase => escapeRegExp(phrase.trim()));
+      .map(phrase => escapeRegExp(phrase.trim().toLowerCase()));
     
     if (phrasePatterns.length === 0) return;
     
@@ -103,7 +103,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Сбрасываем lastIndex перед использованием regex
       regex.lastIndex = 0;
       
-      while ((match = regex.exec(text)) !== null) {
+      // Создаем копию текста в нижнем регистре для поиска
+      const lowerText = text.toLowerCase();
+      
+      while ((match = regex.exec(lowerText)) !== null) {
         const startOffset = match.index;
         const endOffset = startOffset + match[0].length;
         
@@ -119,7 +122,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             .find(node => 
               node.nodeType === Node.TEXT_NODE && 
               node.textContent.length > 0 &&
-              regex.test(node.textContent)
+              regex.test(node.textContent.toLowerCase())
             );
           
           if (!textNode) break;

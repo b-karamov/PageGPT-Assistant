@@ -199,30 +199,34 @@ document.getElementById("btnHighlight").addEventListener("click", async () => {
     showStatus("Поиск ключевых идей...");
     const text = await getPageText();
     
-    // Улучшенный промпт для получения ключевых идей
-    const prompt = `Analyze the following text and extract the most important quotes that capture the main ideas. Rules:
-1. Each quote must be an exact, word-for-word copy from the original text
-2. Each quote should be on a new line
-3. Do not add any numbering, bullets, or extra formatting
-4. Do not add any explanations or comments
-5. Each quote should be wrapped in double quotes
-6. Focus on quotes that:
-   - Represent main ideas or conclusions
-   - Contain key findings or statistics
-   - Explain core concepts
-   - Present important arguments or statements
-7. Quotes should be between 5 and 40 words long
-8. Extract as many quotes as needed to cover all main ideas (typically 3-8 quotes)
+    // Новый промпт для получения ключевых идей без кавычек
+    const prompt = `Analyze the following text and extract the most important phrases that capture the main ideas. Rules:
+1. Each phrase must be an exact, word-for-word copy from the original text. THIS IS VERY IMPORTANT. THIS RULE CANNOT BE BROKEN.
+2. Put each phrase on a new line, starting with a dash (-)
+3. Do not add any other formatting, punctuation, or explanations. VERY IMPORTANT. THIS RULE CANNOT BE BROKEN.
+4. Focus on phrases that:
+   * Represent main ideas or conclusions
+   * Contain key findings or statistics
+   * Explain core concepts or introduce new terms
+   * Present important arguments or statements
+5. Phrases should be between 1 and 40 words long
+6. Phrases should be unique and not repeat the same idea
+7. Chose phrases that do not contain quotation marks or dashes
+8. Make sure that all important terms are included in your answer
+9. Return phrases in the same order as they appear in the text
 
 Here's the text to analyze:
 ${text}`;
 
     const result = await callChatGPT(prompt);
     
-    // Извлекаем фразы, обернутые в кавычки
-    const keyPhrases = result.match(/"([^"]+)"/g)
-      ?.map(phrase => phrase.slice(1, -1)) // Убираем кавычки
-      ?.filter(phrase => phrase.trim().length > 0) || [];
+    // Извлекаем фразы, начинающиеся с дефиса
+    const keyPhrases = result
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('-'))
+      .map(line => line.slice(1).trim()) // Убираем дефис
+      .filter(phrase => phrase.length > 0);
 
     if (keyPhrases.length === 0) {
       throw new Error("Не удалось извлечь ключевые фразы из ответа ChatGPT");
