@@ -11,11 +11,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ text: pageText });
   }
   else if (message.action === "CLEAR_HIGHLIGHT") {
-    // Удаляем оверлей, если он есть
-    const overlay = document.getElementById("gpt-highlight-overlay");
-    if (overlay) {
-      overlay.remove();
-    }
+    // Удаляем все выделения
+    const highlights = document.querySelectorAll('.gpt-highlight-wrapper');
+    highlights.forEach(el => {
+      // Восстанавливаем оригинальный текст
+      const parent = el.parentNode;
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el);
+      }
+      parent.removeChild(el);
+      parent.normalize();
+    });
   }
   else if (message.action === "HIGHLIGHT") {
     const phrases = message.phrases || [];
@@ -23,13 +29,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return; // нечего подсвечивать
     }
 
-    // Удаляем предыдущий оверлей, если он есть
-    const oldOverlay = document.getElementById("gpt-highlight-overlay");
-    if (oldOverlay) {
-      oldOverlay.remove();
+    // Удаляем предыдущие выделения
+    const oldHighlights = document.querySelectorAll('.gpt-highlight-wrapper');
+    oldHighlights.forEach(el => {
+      const parent = el.parentNode;
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el);
+      }
+      parent.removeChild(el);
+      parent.normalize();
+    });
+
+    // Добавляем стили для выделения
+    let style = document.getElementById('gpt-highlight-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'gpt-highlight-style';
+      style.textContent = `
+        .gpt-highlight-wrapper {
+          background: rgba(0, 0, 0, 0.9);
+          display: inline;
+        }
+        .gpt-highlight-content {
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 3px;
+          padding: 2px 4px;
+          margin: 0 -2px;
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
+          position: relative;
+          color: inherit;
+        }
+      `;
+      document.head.appendChild(style);
     }
 
-    // Функция для экранирования специальных символов в тексте для RegExp
+    // Функция для экранирования специальных символов в регулярном выражении
     function escapeRegExp(str) {
       return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
@@ -40,162 +75,90 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .map(phrase => escapeRegExp(phrase.trim()));
     
     if (phrasePatterns.length === 0) return;
+    
+    const regex = new RegExp(`(${phrasePatterns.join('|')})`, 'gi');
 
-    // Создаем TreeWalker для обхода текстовых узлов
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: function(node) {
-          // Пропускаем скрипты и стили
-          const parent = node.parentNode;
-          if (parent.nodeName === 'SCRIPT' || 
-              parent.nodeName === 'STYLE') {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      }
-    );
-
-    // Собираем все текстовые узлы и их позиции
-    const highlights = [];
-    let node;
-    const regex = new RegExp(phrasePatterns.join('|'), 'gi');
-
-    while (node = walker.nextNode()) {
-      const text = node.textContent;
-      let match;
+    // Функция для создания выделения текста
+    function createHighlight(range) {
+      const wrapper = document.createElement('span');
+      wrapper.className = 'gpt-highlight-wrapper';
       
-      while ((match = regex.exec(text)) !== null) {
-        const range = document.createRange();
-        range.setStart(node, match.index);
-        range.setEnd(node, match.index + match[0].length);
-        
-        // Получаем все прямоугольники для диапазона (каждая строка будет отдельным прямоугольником)
-        const clientRects = Array.from(range.getClientRects());
-        
-        // Добавляем каждый прямоугольник как отдельное выделение
-        clientRects.forEach(rect => {
-          highlights.push({
-            left: rect.left + window.scrollX,
-            top: rect.top + window.scrollY,
-            width: rect.width,
-            height: rect.height
-          });
-        });
+      const content = document.createElement('span');
+      content.className = 'gpt-highlight-content';
+      
+      range.surroundContents(wrapper);
+      wrapper.appendChild(content);
+      
+      // Перемещаем содержимое wrapper внутрь content
+      while (wrapper.firstChild !== content) {
+        content.appendChild(wrapper.firstChild);
       }
     }
 
-    // Создаем затемняющий оверлей
-    const overlay = document.createElement("div");
-    overlay.id = "gpt-highlight-overlay";
-    overlay.style.position = "absolute";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = document.documentElement.scrollWidth + "px";
-    overlay.style.height = document.documentElement.scrollHeight + "px";
-    overlay.style.pointerEvents = "none";
-    overlay.style.zIndex = "2147483647";
-
-    // Создаем SVG для затемнения с вырезами
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.style.position = "absolute";
-    svg.style.top = "0";
-    svg.style.left = "0";
-    svg.style.width = "100%";
-    svg.style.height = "100%";
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "100%");
-    svg.setAttribute("preserveAspectRatio", "none");
-
-    // Добавляем обработчик изменения размера страницы
-    const resizeObserver = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        overlay.style.width = entry.target.scrollWidth + "px";
-        overlay.style.height = entry.target.scrollHeight + "px";
+    // Функция для обработки текстового узла
+    function processTextNode(textNode) {
+      const text = textNode.textContent;
+      let match;
+      
+      // Сбрасываем lastIndex перед использованием regex
+      regex.lastIndex = 0;
+      
+      while ((match = regex.exec(text)) !== null) {
+        const startOffset = match.index;
+        const endOffset = startOffset + match[0].length;
+        
+        try {
+          const range = document.createRange();
+          range.setStart(textNode, startOffset);
+          range.setEnd(textNode, endOffset);
+          createHighlight(range);
+          
+          // После создания выделения нужно обновить textNode,
+          // так как он был изменен
+          textNode = Array.from(range.endContainer.parentNode.childNodes)
+            .find(node => 
+              node.nodeType === Node.TEXT_NODE && 
+              node.textContent.length > 0 &&
+              regex.test(node.textContent)
+            );
+          
+          if (!textNode) break;
+          
+          // Сбрасываем regex.lastIndex, так как мы работаем с новым текстовым узлом
+          regex.lastIndex = 0;
+        } catch (e) {
+          console.error('Error highlighting text:', e);
+          break;
+        }
       }
-    });
-    resizeObserver.observe(document.documentElement);
+    }
 
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    svg.appendChild(defs);
+    // Функция для рекурсивного обхода DOM
+    function walkDOM(node) {
+      if (!node) return;
 
-    // Создаем градиент для более мягкого эффекта выделения
-    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-    const gradientId = "highlight-gradient-" + Math.random().toString(36).substr(2, 9);
-    gradient.setAttribute("id", gradientId);
-    gradient.setAttribute("x1", "0%");
-    gradient.setAttribute("y1", "0%");
-    gradient.setAttribute("x2", "100%");
-    gradient.setAttribute("y2", "100%");
-
-    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    stop1.setAttribute("offset", "0%");
-    stop1.setAttribute("style", "stop-color:rgba(0,0,0,0.6)");
-
-    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    stop2.setAttribute("offset", "100%");
-    stop2.setAttribute("style", "stop-color:rgba(0,0,0,0.5)");
-
-    gradient.appendChild(stop1);
-    gradient.appendChild(stop2);
-    defs.appendChild(gradient);
-
-    // Создаем маску
-    const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
-    const maskId = "highlight-mask-" + Math.random().toString(36).substr(2, 9);
-    mask.setAttribute("id", maskId);
-
-    // Создаем базовый белый прямоугольник для маски
-    const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    background.setAttribute("x", "0");
-    background.setAttribute("y", "0");
-    background.setAttribute("width", "100%");
-    background.setAttribute("height", "100%");
-    background.setAttribute("fill", "white");
-
-    mask.appendChild(background);
-
-    // Добавляем каждое выделение как отдельный прямоугольник
-    highlights.forEach(rect => {
-      const highlight = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      const padding = 2;
-      highlight.setAttribute("x", rect.left + "px");
-      highlight.setAttribute("y", rect.top + "px");
-      highlight.setAttribute("width", (rect.width + padding * 2) + "px");
-      highlight.setAttribute("height", (rect.height + padding * 2) + "px");
-      highlight.setAttribute("fill", "black");
-      highlight.setAttribute("rx", "2");
-      highlight.setAttribute("ry", "2");
-      mask.appendChild(highlight);
-    });
-
-    svg.appendChild(mask);
-
-    // Создаем прямоугольник с затемнением, используя маску
-    const overlay_rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    overlay_rect.setAttribute("x", "0");
-    overlay_rect.setAttribute("y", "0");
-    overlay_rect.setAttribute("width", "100%");
-    overlay_rect.setAttribute("height", "100%");
-    overlay_rect.setAttribute("fill", `url(#${gradientId})`);
-    overlay_rect.setAttribute("mask", `url(#${maskId})`);
-
-    svg.appendChild(overlay_rect);
-    overlay.appendChild(svg);
-    document.body.appendChild(overlay);
-
-    // Очищаем ResizeObserver при удалении оверлея
-    const clearHighlight = () => {
-      const overlay = document.getElementById("gpt-highlight-overlay");
-      if (overlay) {
-        resizeObserver.disconnect();
-        overlay.remove();
+      // Пропускаем элементы, которые не нужно обрабатывать
+      if (node.nodeType === Node.ELEMENT_NODE && (
+          node.nodeName === 'SCRIPT' || 
+          node.nodeName === 'STYLE' || 
+          node.nodeName === 'NOSCRIPT' ||
+          node.classList.contains('gpt-highlight-wrapper') ||
+          node.classList.contains('gpt-highlight-content'))) {
+        return;
       }
-    };
 
-    // Добавляем обработчик для очистки при переходе на другую страницу
-    window.addEventListener("beforeunload", clearHighlight);
+      // Если это текстовый узел с непустым содержимым
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        processTextNode(node);
+        return;
+      }
+
+      // Рекурсивно обрабатываем дочерние узлы
+      const children = Array.from(node.childNodes);
+      children.forEach(walkDOM);
+    }
+
+    // Запускаем обработку с корня документа
+    walkDOM(document.body);
   }
 });
