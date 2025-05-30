@@ -93,10 +93,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     overlay.style.position = "absolute";
     overlay.style.top = "0";
     overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
+    overlay.style.width = document.documentElement.scrollWidth + "px";
+    overlay.style.height = document.documentElement.scrollHeight + "px";
     overlay.style.pointerEvents = "none";
-    overlay.style.zIndex = "9999";
+    overlay.style.zIndex = "2147483647";
 
     // Создаем SVG для затемнения с вырезами
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -105,13 +105,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     svg.style.left = "0";
     svg.style.width = "100%";
     svg.style.height = "100%";
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    // Добавляем обработчик изменения размера страницы
+    const resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        overlay.style.width = entry.target.scrollWidth + "px";
+        overlay.style.height = entry.target.scrollHeight + "px";
+      }
+    });
+    resizeObserver.observe(document.documentElement);
 
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     svg.appendChild(defs);
 
     // Создаем градиент для более мягкого эффекта выделения
     const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-    gradient.setAttribute("id", "highlight-gradient");
+    const gradientId = "highlight-gradient-" + Math.random().toString(36).substr(2, 9);
+    gradient.setAttribute("id", gradientId);
     gradient.setAttribute("x1", "0%");
     gradient.setAttribute("y1", "0%");
     gradient.setAttribute("x2", "100%");
@@ -119,11 +132,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop1.setAttribute("offset", "0%");
-    stop1.setAttribute("style", "stop-color:rgba(0,0,0,0.45)");
+    stop1.setAttribute("style", "stop-color:rgba(0,0,0,0.6)");
 
     const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop2.setAttribute("offset", "100%");
-    stop2.setAttribute("style", "stop-color:rgba(0,0,0,0.35)");
+    stop2.setAttribute("style", "stop-color:rgba(0,0,0,0.5)");
 
     gradient.appendChild(stop1);
     gradient.appendChild(stop2);
@@ -131,7 +144,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // Создаем маску
     const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
-    mask.setAttribute("id", "highlight-mask");
+    const maskId = "highlight-mask-" + Math.random().toString(36).substr(2, 9);
+    mask.setAttribute("id", maskId);
 
     // Создаем базовый белый прямоугольник для маски
     const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -146,11 +160,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Добавляем каждое выделение как отдельный прямоугольник
     highlights.forEach(rect => {
       const highlight = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      const padding = 2; // Уменьшенный отступ для более точного выделения
-      highlight.setAttribute("x", rect.left - padding);
-      highlight.setAttribute("y", rect.top - padding);
-      highlight.setAttribute("width", rect.width + (padding * 2));
-      highlight.setAttribute("height", rect.height + (padding * 2));
+      const padding = 2;
+      highlight.setAttribute("x", rect.left + "px");
+      highlight.setAttribute("y", rect.top + "px");
+      highlight.setAttribute("width", (rect.width + padding * 2) + "px");
+      highlight.setAttribute("height", (rect.height + padding * 2) + "px");
       highlight.setAttribute("fill", "black");
       highlight.setAttribute("rx", "2");
       highlight.setAttribute("ry", "2");
@@ -165,11 +179,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     overlay_rect.setAttribute("y", "0");
     overlay_rect.setAttribute("width", "100%");
     overlay_rect.setAttribute("height", "100%");
-    overlay_rect.setAttribute("fill", "url(#highlight-gradient)");
-    overlay_rect.setAttribute("mask", "url(#highlight-mask)");
+    overlay_rect.setAttribute("fill", `url(#${gradientId})`);
+    overlay_rect.setAttribute("mask", `url(#${maskId})`);
 
     svg.appendChild(overlay_rect);
     overlay.appendChild(svg);
     document.body.appendChild(overlay);
+
+    // Очищаем ResizeObserver при удалении оверлея
+    const clearHighlight = () => {
+      const overlay = document.getElementById("gpt-highlight-overlay");
+      if (overlay) {
+        resizeObserver.disconnect();
+        overlay.remove();
+      }
+    };
+
+    // Добавляем обработчик для очистки при переходе на другую страницу
+    window.addEventListener("beforeunload", clearHighlight);
   }
 });
