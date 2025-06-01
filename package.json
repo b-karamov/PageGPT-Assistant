@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Chrome extension for analyzing web pages using GPT",
   "main": "popup.js",
+  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

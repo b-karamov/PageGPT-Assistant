@@ -2,7 +2,7 @@
 // Загружаем сохраненное состояние при открытии popup
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.tabs.query({ active: true, currentWindow: true });
     const state = await chrome.storage.local.get(['lastOutput', 'lastAction']);
     if (state.lastOutput && state.lastAction) {
       renderMarkdown(state.lastOutput);
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (err) {
     console.error('Error loading state:', err);
-    showStatus("Ошибка при загрузке состояния", "error");
+    showStatus('Ошибка при загрузке состояния', 'error');
   }
 });
 
@@ -30,7 +30,7 @@ function hideStatus() {
 
 // Функция для рендеринга markdown с безопасной обработкой HTML
 function renderMarkdown(text) {
-  const output = document.getElementById("output");
+  const output = document.getElementById('output');
   // Конвертируем markdown в HTML и очищаем от потенциально опасного кода
   const html = DOMPurify.sanitize(marked.parse(text));
   output.innerHTML = html;
@@ -39,7 +39,7 @@ function renderMarkdown(text) {
 async function ensureContentScriptInjected(tab) {
   try {
     // Пробуем отправить тестовое сообщение
-    await chrome.tabs.sendMessage(tab.id, { action: "PING" });
+    await chrome.tabs.sendMessage(tab.id, { action: 'PING' });
   } catch (error) {
     // Если content script не отвечает, инжектируем его
     await chrome.scripting.executeScript({
@@ -57,7 +57,7 @@ async function getPageText() {
   // Убеждаемся, что content script загружен
   await ensureContentScriptInjected(tab);
   // Отправка сообщения content script с запросом текста
-  let response = await chrome.tabs.sendMessage(tab.id, { action: "GET_TEXT" });
+  let response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_TEXT' });
   return response.text;
 }
 
@@ -73,29 +73,29 @@ async function saveState(output, action) {
   }
 }
 
-const OPENAI_API_KEY = "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"; 
+const OPENAI_API_KEY = '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'; 
 
 async function callChatGPT(promptText) {
-  const apiUrl = "https://api.openai.com/v1/chat/completions";
+  const apiUrl = 'https://api.openai.com/v1/chat/completions';
   // Сформировать тело запроса по формату ChatGPT API
   const requestData = {
-    model: "gpt-4o-mini",
-    messages: [ { role: "user", content: promptText } ],
+    model: 'gpt-4o-mini',
+    messages: [ { role: 'user', content: promptText } ],
     max_tokens: 1024,  // ограничим ответ разумным числом токенов
     temperature: 0.7   // температуру можно регулировать: 0.7 для сбалансированных ответов
   };
 
   const response = await fetch(apiUrl, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify(requestData)
   });
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("OpenAI API error:", response.status, errorText);
+    console.error('OpenAI API error:', response.status, errorText);
     throw new Error(`API request failed: ${response.status}`);
   }
   const data = await response.json();
@@ -105,38 +105,38 @@ async function callChatGPT(promptText) {
 }
 
 // Обработчик для сброса выделения
-document.getElementById("btnClearHighlight").addEventListener("click", async () => {
+document.getElementById('btnClearHighlight').addEventListener('click', async () => {
   try {
-    showStatus("Сброс выделения...");
+    showStatus('Сброс выделения...');
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     await ensureContentScriptInjected(tab);
-    await chrome.tabs.sendMessage(tab.id, { action: "CLEAR_HIGHLIGHT" });
-    document.getElementById("output").innerHTML = "";
-    await saveState("", "clear");
+    await chrome.tabs.sendMessage(tab.id, { action: 'CLEAR_HIGHLIGHT' });
+    document.getElementById('output').innerHTML = '';
+    await saveState('', 'clear');
     hideStatus();
   } catch(err) {
     console.error(err);
-    showStatus("Ошибка при сбросе выделения", "error");
-    renderMarkdown("❌ " + err.message);
+    showStatus('Ошибка при сбросе выделения', 'error');
+    renderMarkdown('❌ ' + err.message);
   }
 });
 
 // Обработчик для кнопки копирования
-document.getElementById("btnCopy").addEventListener("click", async () => {
-  const output = document.getElementById("output");
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  const output = document.getElementById('output');
   try {
     await navigator.clipboard.writeText(output.innerText);
-    showStatus("Скопировано!", "success");
+    showStatus('Скопировано!', 'success');
     setTimeout(hideStatus, 2000);
   } catch(err) {
-    showStatus("Ошибка при копировании", "error");
+    showStatus('Ошибка при копировании', 'error');
   }
 });
 
 // Назначаем обработчики на кнопки после загрузки popup
-document.getElementById("btnSummary").addEventListener("click", async () => {
+document.getElementById('btnSummary').addEventListener('click', async () => {
   try {
-    showStatus("Генерация саммари...");
+    showStatus('Генерация саммари...');
     const text = await getPageText();  // получаем текст страницы
     const prompt = `Проанализируй следующий текст и создай подробное саммари. Структурируй ответ следующим образом:
 
@@ -158,18 +158,18 @@ ${text}`;
 
     const summary = await callChatGPT(prompt);
     renderMarkdown(summary);
-    await saveState(summary, "summary");
+    await saveState(summary, 'summary');
     hideStatus();
   } catch(err) {
     console.error(err);
-    showStatus("Ошибка при создании саммари", "error");
-    renderMarkdown("❌ " + err.message);
+    showStatus('Ошибка при создании саммари', 'error');
+    renderMarkdown('❌ ' + err.message);
   }
 });
 
-document.getElementById("btnOutline").addEventListener("click", async () => {
+document.getElementById('btnOutline').addEventListener('click', async () => {
   try {
-    showStatus("Генерация плана...");
+    showStatus('Генерация плана...');
     const text = await getPageText();
     const prompt = `Создай подробный план-конспект текста. Требования:
 
@@ -185,25 +185,25 @@ ${text}`;
 
     const outline = await callChatGPT(prompt);
     renderMarkdown(outline);
-    await saveState(outline, "outline");
+    await saveState(outline, 'outline');
     hideStatus();
   } catch(err) {
     console.error(err);
-    showStatus("Ошибка при создании плана", "error");
-    renderMarkdown("❌ " + err.message);
+    showStatus('Ошибка при создании плана', 'error');
+    renderMarkdown('❌ ' + err.message);
   }
 });
 
-document.getElementById("btnHighlight").addEventListener("click", async () => {
+document.getElementById('btnHighlight').addEventListener('click', async () => {
   try {
-    showStatus("Поиск ключевых идей...");
+    showStatus('Поиск ключевых идей...');
     const text = await getPageText();
     
     // Новый промпт для получения ключевых идей без кавычек
     const prompt = `Analyze the following text and extract the most important phrases that capture the main ideas. Rules:
-1. Each phrase must be an exact, word-for-word copy from the original text. THIS IS VERY IMPORTANT. THIS RULE CANNOT BE BROKEN.
+1. Each phrase must be an exact, word-for-word copy from the original text
 2. Put each phrase on a new line, starting with a dash (-)
-3. Do not add any other formatting, punctuation, or explanations. VERY IMPORTANT. THIS RULE CANNOT BE BROKEN.
+3. Do not add any other formatting, punctuation, or explanations
 4. Focus on phrases that:
    * Represent main ideas or conclusions
    * Contain key findings or statistics
@@ -213,7 +213,6 @@ document.getElementById("btnHighlight").addEventListener("click", async () => {
 6. Phrases should be unique and not repeat the same idea
 7. Chose phrases that do not contain quotation marks or dashes
 8. Make sure that all important terms are included in your answer
-9. Return phrases in the same order as they appear in the text
 
 Here's the text to analyze:
 ${text}`;
@@ -229,7 +228,7 @@ ${text}`;
       .filter(phrase => phrase.length > 0);
 
     if (keyPhrases.length === 0) {
-      throw new Error("Не удалось извлечь ключевые фразы из ответа ChatGPT");
+      throw new Error('Не удалось извлечь ключевые фразы из ответа ChatGPT');
     }
 
     // Получаем активную вкладку и проверяем content script
@@ -237,17 +236,17 @@ ${text}`;
     await ensureContentScriptInjected(tab);
     
     // Отправляем сообщение для подсветки
-    await chrome.tabs.sendMessage(tab.id, { action: "HIGHLIGHT", phrases: keyPhrases });
+    await chrome.tabs.sendMessage(tab.id, { action: 'HIGHLIGHT', phrases: keyPhrases });
     
     // Показываем найденные фразы пользователю
-    const finalOutput = "## Выделенные ключевые фразы:\n\n" + 
-      keyPhrases.map(phrase => `> ${phrase}`).join("\n\n");
+    const finalOutput = '## Выделенные ключевые фразы:\n\n' + 
+      keyPhrases.map(phrase => `> ${phrase}`).join('\n\n');
     renderMarkdown(finalOutput);
-    await saveState(finalOutput, "highlight");
+    await saveState(finalOutput, 'highlight');
     hideStatus();
   } catch(err) {
     console.error(err);
-    showStatus("Ошибка при выделении ключевых идей", "error");
-    renderMarkdown("❌ " + err.message);
+    showStatus('Ошибка при выделении ключевых идей', 'error');
+    renderMarkdown('❌ ' + err.message);
   }
 });
