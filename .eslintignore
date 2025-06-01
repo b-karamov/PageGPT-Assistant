@@ -1,0 +1,3 @@
+lib/
+*.min.js
+node_modules/ 

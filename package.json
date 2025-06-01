@@ -5,8 +5,8 @@
   "main": "popup.js",
   "type": "module",
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --ignore-pattern 'lib/*' --ignore-pattern '*.min.js'",
+    "lint:fix": "eslint . --ignore-pattern 'lib/*' --ignore-pattern '*.min.js' --fix",
     "build": "zip -r extension.zip . -x \"*.git*\" -x \"node_modules/*\""
   },
   "repository": {

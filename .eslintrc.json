@@ -1,24 +1,22 @@
 {
   "env": {
     "browser": true,
-    "es2021": true,
-    "webextensions": true
+    "es2021": true
   },
-  "extends": "eslint:recommended",
+  "extends": "standard",
   "parserOptions": {
-    "ecmaVersion": 2021,
+    "ecmaVersion": "latest",
     "sourceType": "module"
   },
   "globals": {
+    "chrome": "readonly",
     "DOMPurify": "readonly",
     "marked": "readonly"
   },
   "rules": {
-    "indent": ["error", 2],
-    "linebreak-style": ["error", "unix"],
     "quotes": ["error", "single"],
-    "semi": ["error", "always"],
-    "no-unused-vars": ["warn"],
+    "indent": ["error", 2],
+    "no-unused-vars": "warn",
     "no-console": ["warn", { "allow": ["warn", "error"] }]
   },
   "ignorePatterns": ["*.min.js", "lib/*"]
